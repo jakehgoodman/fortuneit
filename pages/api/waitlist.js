@@ -18,36 +18,64 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Email is required' });
     }
 
-    // Verify environment variables
-    if (!process.env.GOOGLE_SHEET_ID || !process.env.GOOGLE_CLIENT_EMAIL || !process.env.GOOGLE_PRIVATE_KEY) {
-      throw new Error('Missing required environment variables');
+    // Debug environment variables (only in development)
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Environment variables check:', {
+        hasSheetId: !!process.env.GOOGLE_SHEET_ID,
+        hasClientEmail: !!process.env.GOOGLE_CLIENT_EMAIL,
+        hasPrivateKey: !!process.env.GOOGLE_PRIVATE_KEY,
+      });
     }
+
+    // Verify environment variables
+    if (!process.env.GOOGLE_SHEET_ID) {
+      throw new Error('Missing GOOGLE_SHEET_ID');
+    }
+    if (!process.env.GOOGLE_CLIENT_EMAIL) {
+      throw new Error('Missing GOOGLE_CLIENT_EMAIL');
+    }
+    if (!process.env.GOOGLE_PRIVATE_KEY) {
+      throw new Error('Missing GOOGLE_PRIVATE_KEY');
+    }
+
+    // Handle private key formatting
+    let privateKey = process.env.GOOGLE_PRIVATE_KEY;
+    if (privateKey.startsWith('"') && privateKey.endsWith('"')) {
+      privateKey = privateKey.slice(1, -1);
+    }
+    privateKey = privateKey.replace(/\\n/g, '\n');
 
     const auth = new google.auth.GoogleAuth({
       credentials: {
         client_email: process.env.GOOGLE_CLIENT_EMAIL,
-        private_key: process.env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, '\n'),
+        private_key: privateKey,
       },
       scopes: ['https://www.googleapis.com/auth/spreadsheets'],
     });
 
     const sheets = google.sheets({ version: 'v4', auth });
 
-    await sheets.spreadsheets.values.append({
-      spreadsheetId: process.env.GOOGLE_SHEET_ID,
-      range: 'A:B',
-      valueInputOption: 'USER_ENTERED',
-      requestBody: {
-        values: [[email, new Date().toISOString()]],
-      },
-    });
+    try {
+      await sheets.spreadsheets.values.append({
+        spreadsheetId: process.env.GOOGLE_SHEET_ID,
+        range: 'A:B',
+        valueInputOption: 'USER_ENTERED',
+        requestBody: {
+          values: [[email, new Date().toISOString()]],
+        },
+      });
+    } catch (sheetsError) {
+      console.error('Google Sheets API error:', sheetsError);
+      throw new Error(`Google Sheets API error: ${sheetsError.message}`);
+    }
 
     res.status(200).json({ message: 'Successfully added to waitlist' });
   } catch (error) {
     console.error('Server error:', error);
     res.status(500).json({ 
       error: 'Failed to add to waitlist',
-      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+      message: error.message,
+      details: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
   }
 } 

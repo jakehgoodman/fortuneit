@@ -8,13 +8,15 @@ async function addToWaitlist(email) {
             body: JSON.stringify({ email }),
         });
 
+        const data = await response.json();
+
         if (!response.ok) {
-            throw new Error('Failed to join waitlist');
+            throw new Error(data.message || data.error || 'Failed to join waitlist');
         }
 
-        return await response.json();
+        return data;
     } catch (error) {
         console.error('Waitlist error:', error);
-        throw new Error('Failed to join waitlist. Please try again.');
+        throw error;
     }
 }

@@ -1,9 +1,11 @@
 function App() {
     const [showSuccess, setShowSuccess] = React.useState(false);
     const [showCookieAnimation, setShowCookieAnimation] = React.useState(false);
+    const [error, setError] = React.useState(null);
 
     const handleSubmit = async (email) => {
         try {
+            setError(null);
             await addToWaitlist(email);
             setShowCookieAnimation(true);
             setTimeout(() => {
@@ -11,8 +13,9 @@ function App() {
                 setShowSuccess(true);
             }, 2000);
         } catch (error) {
-            reportError(error);
-            alert('Oops! Something went wrong. Please try again.');
+            console.error('Submission error:', error);
+            setError(error.message);
+            alert(`Failed to join waitlist: ${error.message}`);
         }
     };
 
@@ -33,6 +36,9 @@ function App() {
                 <div className="flex justify-center mb-12">
                     <WaitlistForm onSubmit={handleSubmit} />
                 </div>
+                {error && (
+                    <p className="text-red-500 mb-4">{error}</p>
+                )}
                 <Features />
                 <SuccessModal 
                     isOpen={showSuccess} 
