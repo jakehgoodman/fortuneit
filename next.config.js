@@ -16,24 +16,32 @@ const nextConfig = {
       },
     ];
   },
-  // Serve static files from public directory
+  // Handle static files and API routes
   async rewrites() {
     return [
+      // Serve index.html for root path
       {
         source: '/',
         destination: '/index.html',
       },
+      // Serve all other static files from public
       {
         source: '/:path*',
         destination: '/:path*',
+        has: [
+          {
+            type: 'header',
+            key: 'accept',
+            value: '(?!application/json).*'
+          }
+        ]
       }
     ];
   },
   // Disable Next.js's default handling of / route
   pageExtensions: ['js', 'jsx', 'ts', 'tsx'],
-  // Enable serving static files from public
+  // Configure webpack for browser compatibility
   webpack: (config, { isServer }) => {
-    // Fixes npm packages that depend on `fs` module
     if (!isServer) {
       config.resolve.fallback = {
         fs: false,
