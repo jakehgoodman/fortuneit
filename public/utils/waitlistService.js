@@ -4,9 +4,16 @@ async function addToWaitlist(email) {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
+                'Accept': 'application/json'
             },
             body: JSON.stringify({ email }),
         });
+
+        // Check if response is JSON
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+            throw new Error('Server error: Invalid response format');
+        }
 
         const data = await response.json();
 
@@ -17,6 +24,9 @@ async function addToWaitlist(email) {
         return data;
     } catch (error) {
         console.error('Waitlist error:', error);
+        if (error.message.includes('Invalid response format')) {
+            throw new Error('Server error: Please try again later');
+        }
         throw error;
     }
 }

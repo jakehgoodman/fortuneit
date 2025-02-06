@@ -1,6 +1,9 @@
 import { google } from 'googleapis';
 
 export default async function handler(req, res) {
+  // Set CORS headers
+  res.setHeader('Content-Type', 'application/json');
+  
   // Handle preflight requests
   if (req.method === 'OPTIONS') {
     res.status(200).end();
@@ -66,13 +69,16 @@ export default async function handler(req, res) {
       });
     } catch (sheetsError) {
       console.error('Google Sheets API error:', sheetsError);
-      throw new Error(`Google Sheets API error: ${sheetsError.message}`);
+      return res.status(500).json({
+        error: 'Google Sheets API error',
+        message: sheetsError.message
+      });
     }
 
-    res.status(200).json({ message: 'Successfully added to waitlist' });
+    return res.status(200).json({ message: 'Successfully added to waitlist' });
   } catch (error) {
     console.error('Server error:', error);
-    res.status(500).json({ 
+    return res.status(500).json({ 
       error: 'Failed to add to waitlist',
       message: error.message,
       details: process.env.NODE_ENV === 'development' ? error.stack : undefined
